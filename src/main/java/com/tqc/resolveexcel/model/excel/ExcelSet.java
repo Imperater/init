@@ -1,8 +1,7 @@
 package com.tqc.resolveexcel.model.excel;
 
 
-import lombok.Getter;
-import lombok.Setter;
+import lombok.*;
 
 import java.io.File;
 import java.util.List;
@@ -15,6 +14,9 @@ import java.util.List;
  */
 @Getter
 @Setter
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class ExcelSet {
 
     /**

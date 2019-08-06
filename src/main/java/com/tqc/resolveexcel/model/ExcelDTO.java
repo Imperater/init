@@ -3,6 +3,7 @@ package com.tqc.resolveexcel.model;
 import lombok.*;
 
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -16,6 +17,11 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class ExcelDTO {
+
+
+    private Date date1;
+
+    private Date date2;
 
     private Integer no;
 

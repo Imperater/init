@@ -1,13 +1,19 @@
 package com.tqc.resolveexcel.util;
 
-import com.tqc.resolveexcel.model.ExcelDTO;
+import com.sun.org.apache.xpath.internal.objects.XObject;
 import com.tqc.resolveexcel.model.excel.ExcelSet;
 import com.tqc.resolveexcel.model.excel.ExcelSheet;
+import lombok.SneakyThrows;
+import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.ss.usermodel.*;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.math.BigDecimal;
+import java.text.DateFormat;
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 /**
@@ -19,6 +25,13 @@ import java.util.*;
  */
 public class ExcelUtil {
 
+    private static final String SHUA_KA_RI_QI = "刷卡日期";
+
+    private static final String XLS = ".xls";
+
+    private static final String XLSX = ".xlsx";
+
+
     /**
      * 解析Excel表格
      *
@@ -29,227 +42,236 @@ public class ExcelUtil {
     public static ExcelSet resolveExcel(String path) throws Exception {
 
         ExcelSet excelSet = new ExcelSet();
-
-
         //Excel文件
-        Workbook workbook = WorkbookFactory.create(new File(path));
+        File file = new File(path);
+        if (file.getName().endsWith(XLS)) {
+            excelSet = resolveExcelXls(file);
+        } else if (file.getName().endsWith(XLSX)) {
+            excelSet = resolveExcelXlsx(file);
+        }
+        return excelSet;
+    }
 
-        try {
+    private static ExcelSet resolveExcelXlsx(File file) {
+        return new ExcelSet();
+    }
 
-            List<ExcelSheet> sheets = new ArrayList<ExcelSheet>();
+    @SneakyThrows(value = Exception.class)
+    private static ExcelSet resolveExcelXls(File file) {
+        try (Workbook workbook = WorkbookFactory.create(file)) {
+            List<ExcelSheet> sheets = new ArrayList<>();
             Iterator<Sheet> its = workbook.sheetIterator();
             //处理每个sheet
             while (its.hasNext()) {
                 Sheet sheet = its.next();
-
+                List<List<Object>> content = new ArrayList<>();
                 ExcelSheet excelSheet = new ExcelSheet();
                 excelSheet.setName(sheet.getSheetName());
-
-                List<List<String>> content = new ArrayList<>();
-                List<ExcelDTO> testResult = new ArrayList<>();
-                Iterator<Row> itr = sheet.rowIterator();
-                int i=0;
-                //处理该sheet下每一行
-                while (itr.hasNext()) {
-                    Row row = itr.next();
-                    List<String> contentsOfRow = new ArrayList<String>();
-                    Iterator<Cell> itc = row.cellIterator();
-                    //处理该行每个cell
-                    while (itc.hasNext()) {
-                        Cell cell = itc.next();
-//                        添加这一行解决数值类型单元格无法正确读取问题
-                        if (i != 4 || i != 5) {
-                            cell.setCellType(CellType.STRING);
-                            contentsOfRow.add(cell.toString());
-                        }
-                        i++;
-                    }
-                    List<String> convert = Arrays.asList(contentsOfRow.get(2), contentsOfRow.get(4), contentsOfRow.get(5));
-                    content.add(convert);
-                }
-               List<List<String>> convertResult =  addDefaultValue(content);
-                excelSheet.setContent(convertResult);
+                contentAddHeadTitle(sheet, content);
+                formatDateAndTime(sheet, content);
+                List<List<Object>> dataClean = dealDataWithSameNameByList(content);
+              //  List<List<Object>> averageTime = getAverageTime(dataClean);
+                excelSheet.setContent(dataClean);
                 sheets.add(excelSheet);
             }
-            excelSet.setSheets(sheets);
-            excelSet.setExcelFile(new File(path));
+            return ExcelSet.builder().sheets(sheets).excelFile(file).build();
+        }
+    }
+
+    private static List<List<Object>> getAverageTime(List<List<Object>> dataClean) {
+        List<Object> names = new ArrayList<>();
+
+        List<List<Object>> result = new ArrayList<>();
+        List<Object> head = new ArrayList<>();
+        head.add(0, "姓名");
+        head.add(1, "平均每月每天的打卡时间");
+        result.add(head);
+        for (int i = 1; i < dataClean.size(); i++) {
+            String currentName = String.valueOf(dataClean.get(i).get(0));
+            if (!names.contains(currentName)) {
+                List<List<Object>> middleResult = new ArrayList<>();
+                names.add(currentName);
+                for (int j = 1; j < dataClean.size(); j++) {
+                    String dealName = String.valueOf(dataClean.get(j).get(0));
+                    if (currentName.equals(dealName)) {
+                        middleResult.add(dataClean.get(j));
+                    }
+                }
+                dealDataForAverageTime(middleResult, result);
+            }
+        }
+        return result;
+    }
+
+    private static void dealDataForAverageTime(List<List<Object>> middleResult, List<List<Object>> result) {
+        List<Object> dealMiddleResult = new ArrayList<>();
+        dealMiddleResult.add(0, middleResult.get(0).get(0));
+        int days = middleResult.size();
+        double times = 0;
+        for (int i = 1; i < days; i++) {
+            Object middle = middleResult.get(i).get(2);
+            double time = Double.parseDouble(middle.toString());
+            times = time + times;
+        }
+        double averageTime = times / days;
+        dealMiddleResult.add(1, averageTime);
+        result.add(dealMiddleResult);
+    }
+
+    private static void formatDateAndTime(Sheet sheet, List<List<Object>> content) {
+        DateFormat parseDate = new SimpleDateFormat("MM月dd日 HH:mm:ss");
+        for (int i = 1; i < sheet.getLastRowNum(); i++) {
+            Row row = sheet.getRow(i);
+            List<Object> excelLine = new ArrayList<>();
+            excelLine.add(row.getCell(2));
+            Date date = HSSFDateUtil.getJavaDate(row.getCell(4).getNumericCellValue());
+            String date1 = parseDate.format(date).split(" ")[0];
+            excelLine.add(date1);
+            Date time = HSSFDateUtil.getJavaDate(row.getCell(5).getNumericCellValue());
+            String time1 = parseDate.format(time).split(" ")[1];
+            excelLine.add(time1);
+            content.add(excelLine);
+        }
+    }
+
+    private static List<List<Object>> dealDataWithSameNameByList(List<List<Object>> content) {
+        List<Object> names = new ArrayList<>();
+        List<List<Object>> dataCleanResult = new ArrayList<>();
+        for (int i = 1; i < content.size(); i++) {
+            String currentName = String.valueOf(content.get(i).get(0));
+            if (!names.contains(currentName)) {
+                List<List<Object>> waitDealList = new ArrayList<>();
+                names.add(currentName);
+                for (int j = 1; j < content.size(); j++) {
+                    String dealName = String.valueOf(content.get(j).get(0));
+                    if (currentName.equals(dealName)) {
+                        waitDealList.add(content.get(j));
+                    }
+                }
+                dealDataWithSameDataByList(waitDealList, dataCleanResult);
+            }
+        }
+        return dataCleanResult;
+    }
+
+    private static void contentAddHeadTitle(Sheet sheet, List<List<Object>> content) {
+        Row head = sheet.getRow(0);
+        List<Object> headLine = new ArrayList<>();
+        headLine.add(head.getCell(2));
+        headLine.add(head.getCell(4));
+        headLine.add(head.getCell(5));
+        content.add(headLine);
+    }
+
+    private static void dealDataWithSameDataByList(List<List<Object>> waitDealList, List<List<Object>> dataCleanResult) {
+        List<String> date = new ArrayList<>();
+
+        for (int i = 0; i < waitDealList.size(); i++) {
+            String currentDate = String.valueOf(waitDealList.get(i).get(1));
+            if (!date.contains(currentDate)) {
+                List<List<Object>> current = new ArrayList<>();
+                date.add(currentDate);
+                for (int j = 0; j < waitDealList.size(); j++) {
+                    String needDealDate = String.valueOf(waitDealList.get(j).get(1));
+                    if (currentDate.equals(needDealDate)) {
+                        current.add(waitDealList.get(j));
+                    }
+                }
+                calculateTime(current, dataCleanResult);
+            }
+        }
+    }
+
+    private static List<List<Object>> calculateTime(List<List<Object>> current, List<List<Object>> dataCleanResult) {
+        if (current.size() == 1) {
+            return dealAddDefault(current, dataCleanResult);
+        } else if (current.size() == 2) {
+            return dealCurrentDateTime(current, dataCleanResult);
+        } else {
+            return dealDuplicate(current, dataCleanResult);
+        }
+    }
+
+    private static List<List<Object>> dealAddDefault(List<List<Object>> current, List<List<Object>> dataCleanResult) {
+        DateFormat df = new SimpleDateFormat("HH:mm:ss");
+        List<Object> defaultValue = new ArrayList<>();
+        defaultValue.add(current.get(0).get(0));
+        defaultValue.add(current.get(0).get(1));
+        defaultValue.add(current.get(0).get(2));
+        List<List<Object>> result = new ArrayList<>(2);
+        result.add(current.get(0));
+        try {
+            Date dealLine = df.parse("12:00:00");
+            Date currentTime = df.parse(String.valueOf(current.get(0).get(2)));
+            if (currentTime.before(dealLine)) {
+                defaultValue.set(2, "19:00:00");
+            } else {
+                defaultValue.set(2, "10:00:00");
+            }
+            result.add(defaultValue);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return dealCurrentDateTime(result, dataCleanResult);
+    }
+
+    private static List<List<Object>> dealCurrentDateTime(List<List<Object>> result, List<List<Object>> dataCleanResult) {
+        DateFormat df = new SimpleDateFormat("HH:mm:ss");
+        try {
+            String date1 = String.valueOf(result.get(0).get(2));
+            String date2 = String.valueOf(result.get(1).get(2));
+            Date d1 = df.parse(date1);
+            Date d2 = df.parse(String.valueOf(date2));
+            long diff = d1.getTime() - d2.getTime();
+            long days = diff / (1000 * 60 * 60 * 24);
+            long hours = Math.abs((diff - days * (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+            long minutes = Math.abs((diff - days * (1000 * 60 * 60 * 24) - hours * (1000 * 60 * 60)) / (1000 * 60));
+            List<Object> middleResult = new ArrayList<>();
+            middleResult.add(result.get(0).get(0));
+            middleResult.add(result.get(0).get(1));
+            middleResult.add(hours + "." + minutes);
+            dataCleanResult.add(middleResult);
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return dataCleanResult;
+    }
+
+    private static List<List<Object>> dealDuplicate(List<List<Object>> current, List<List<Object>> dataCleanResult) {
+        List<List<Object>> result = new ArrayList<>();
+        try {
+            DateFormat df = new SimpleDateFormat("HH:mm:ss");
+            Date minDate = df.parse(String.valueOf(current.get(0).get(2)));
+            Date maxDate = df.parse(String.valueOf(current.get(1).get(2)));
+            if (minDate.after(maxDate)) {
+                Date middle = minDate;
+                minDate = maxDate;
+                maxDate = middle;
+            }
+            for (int i = 2; i < current.size(); i++) {
+                Date date = df.parse(String.valueOf(current.get(i).get(2)));
+                if (date.before(minDate)) {
+                    minDate = date;
+                } else if (date.after(maxDate)) {
+                    maxDate = date;
+                }
+            }
+            List<Object> min = new ArrayList<>();
+            Object name = current.get(0).get(0);
+            min.add(name);
+            Object date = current.get(0).get(1);
+            min.add(date);
+            min.add(minDate);
+            List<Object> max = new ArrayList<>();
+            max.add(name);
+            max.add(date);
+            max.add(maxDate);
+            result.add(min);
+            result.add(max);
+
         } catch (Exception e) {
             e.printStackTrace();
-            throw new Exception("文件解析错误: " + e.getMessage(), e);
-        } finally {
-            workbook.close();
         }
-
-
-        return excelSet;
+        return dealCurrentDateTime(result, dataCleanResult);
     }
-
-    private static List<List<String>> addDefaultValue(List<List<String>> content) {
-        List<List<String>> target = new ArrayList<>();
-        target.add(content.get(0));
-        for (int i = 1; i < content.size(); i++) {
-            String name = content.get(i).get(0);
-            String date = content.get(i).get(1);
-            if (!target.contains(name) && !target.contains(date)) {
-                List<List<String>> result = new ArrayList<>();
-                for (int j = 1; j < content.size(); j++) {
-                    if (content.get(j).get(0).equals(name) && content.get(j).get(1).equals(date)) {
-                        result.add(content.get(j));
-                    }
-                }
-                calculateValue(target, result);
-            }
-        }
-        return target;
-    }
-
-
-    private static void calculateValue(List<List<String>> target, List<List<String>> result) {
-
-        if (result.size() == 1) {
-            List<String> re = new ArrayList<>(result.get(0));
-            /* *
-             * TODO 需要判断缺省的 是早上为打卡 还是晚上未打开
-             *      如果是早上，则当前时间 - 10:00:00
-             *                否则是 19:00:00 - 当前已有时间
-             */
-            re.set(2, "1");
-            target.add(re);
-        } else if (result.size() == 2) {
-            List<String> re = new ArrayList<>(result.get(0));
-            /*
-             * TODO  "2“ 应该是 最大时间 - 最小时间
-             */
-            re.set(2, "2");
-            target.add(re);
-        } else {
-            /**
-             * TODO 对 List 的 时间 值 进行排序，取最大与最小值的差值
-             */
-            final List<String> val = new ArrayList<>();
-            for (int j = 0; j < result.size(); j++) {
-                val.add(result.get(j).get(2));
-            }
-            String min = Collections.max(val);
-            String max = Collections.min(val);
-            List<String> re = new ArrayList<>(result.get(0));
-            re.set(2, "3");
-            target.add(re);
-        }
-    }
-
-    /**
-     * 获取指定单元格内容
-     *
-     * @param excelSheet
-     * @param row
-     * @param col
-     * @return
-     */
-    public static String getExcelCellValue(ExcelSheet excelSheet, int row, int col) {
-        return excelSheet.getContent().get(row).get(col).trim();
-    }
-
-    /**
-     * 获取指定单元格内容
-     *
-     * @param excelSet
-     * @param sheetIndex
-     * @param row
-     * @param col
-     * @return
-     */
-    public static String getExcelCellValue(ExcelSet excelSet, int sheetIndex, int row, int col) {
-        return excelSet.getSheets().get(sheetIndex).getContent().get(row).get(col).trim();
-    }
-
-
-    /**
-     * 些内容到指定工作表和单元格
-     *
-     * @param content
-     * @param excelSet
-     * @param sheetIndex
-     * @param rowIndex
-     * @param colIndex
-     * @throws Exception
-     */
-    public static void writeCellToExcelFile(String content, ExcelSet excelSet, int sheetIndex, int rowIndex, int colIndex) throws Exception {
-
-        String filename = excelSet.getExcelFile().getAbsolutePath();
-
-        Workbook workbook = WorkbookFactory.create(new FileInputStream(filename));
-        Sheet sheet = workbook.getSheetAt(sheetIndex);
-        Row row = sheet.getRow(rowIndex);
-        Cell cell = row.getCell(colIndex);
-        cell.setCellValue(content);
-
-
-        FileOutputStream fo = new FileOutputStream(filename);
-        try {
-            workbook.write(fo);
-        } finally {
-            fo.flush();
-            fo.close();
-        }
-
-    }
-
-    /**
-     * 将ExcelSet对象存入文件
-     *
-     * @param excelSet
-     * @throws Exception
-     */
-    public static void saveExcelSetToFile(ExcelSet excelSet) throws Exception {
-
-        String filename = excelSet.getExcelFile().getAbsolutePath();
-        Workbook workbook = WorkbookFactory.create(new FileInputStream(filename));
-
-        List<ExcelSheet> sheets = excelSet.getSheets();
-
-        FileOutputStream fo = new FileOutputStream(filename);
-
-        try {
-//         每个工作表
-            for (int sheetIndex = 0; sheetIndex < sheets.size(); sheetIndex++) {
-                Sheet toSheet = workbook.getSheetAt(sheetIndex);
-                ExcelSheet sheet = sheets.get(sheetIndex);
-
-                List<List<String>> content = sheet.getContent();
-//            每个工作表的每一行
-                for (int rowIndex = 0; rowIndex < content.size(); rowIndex++) {
-                    Row toRow = toSheet.getRow(rowIndex);
-                    List<String> row = content.get(rowIndex);
-
-                    int colIndex = 0;
-//                每一行的单元格
-                    for (int toColIndex = 0; toColIndex < row.size(); toColIndex++) {
-                        Cell toCell = toRow.getCell(toColIndex);
-                        String cellValue = row.get(colIndex);
-
-
-                        if (toCell != null) {
-                            if (toCell.getCellTypeEnum().equals(CellType.NUMERIC)) {
-                                toCell.setCellValue(Double.parseDouble(cellValue));
-                            } else {
-                                toCell.setCellValue(cellValue);
-                            }
-
-                            colIndex++;
-                        }
-                    }
-
-                }
-            }
-
-            workbook.write(fo);
-
-        } finally {
-            fo.flush();
-            fo.close();
-        }
-    }
-
-
 }
