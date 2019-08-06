@@ -70,8 +70,8 @@ public class ExcelUtil {
                 contentAddHeadTitle(sheet, content);
                 formatDateAndTime(sheet, content);
                 List<List<Object>> dataClean = dealDataWithSameNameByList(content);
-              //  List<List<Object>> averageTime = getAverageTime(dataClean);
-                excelSheet.setContent(dataClean);
+                List<List<Object>> averageTime = getAverageTime(dataClean);
+                excelSheet.setContent(averageTime);
                 sheets.add(excelSheet);
             }
             return ExcelSet.builder().sheets(sheets).excelFile(file).build();
@@ -261,11 +261,12 @@ public class ExcelUtil {
             min.add(name);
             Object date = current.get(0).get(1);
             min.add(date);
-            min.add(minDate);
+            min.add(df.format(minDate));
+
             List<Object> max = new ArrayList<>();
             max.add(name);
             max.add(date);
-            max.add(maxDate);
+            max.add(df.format(maxDate));
             result.add(min);
             result.add(max);
 
