@@ -1,5 +1,6 @@
 package com.tqc.resolveexcel.model;
 
+import com.google.common.collect.Lists;
 import lombok.*;
 
 import java.util.ArrayList;
@@ -18,35 +19,30 @@ import java.util.List;
 @AllArgsConstructor
 public class ExcelDTO {
 
+    private String userNumber;
 
-    private Date date1;
+    private Integer workDays;
 
-    private Date date2;
+    private String userName;
 
-    private Integer no;
+    private String signInDate;
 
-    private Integer machineId;
+    private String signInTime;
 
-    private String suaKaDate;
+    /**
+     * work time
+     */
+    private String startWorkTime;
 
-    private String suaKaTime;
+    private String endWorkTime;
 
-    private String name;
+    private Double currentWorkTime;
 
-    private String workTime;
+    private Double sumWorkTime;
 
-    private String averageTime;
+    private Date workDate;
 
-    private List<ExcelDTO> convertResult(List<List<Object>> target) {
-        List<ExcelDTO> result = new ArrayList<>();
-        target.forEach(o ->result.add(ExcelDTO.builder()
-                .name(o.get(3).toString())
-                .suaKaDate(o.get(4).toString())
-                .suaKaTime(o.get(5).toString())
-                .build()));
-
-        return result;
-    }
+    private Double averageWorkTime;
 }
 
 

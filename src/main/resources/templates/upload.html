@@ -19,12 +19,27 @@
 
         <div th:each="sheet:${result.data.sheets}">
             <span th:text="${sheet.name}"></span>
+
+
             <table border="2">
-                <tr th:each="row:${sheet.content}">
-                    <td th:each="cell:${row}">
-                        <span th:text="${cell}"></span>
-                    </td>
+                <thead>
+                <tr>
+                    <th>工号</th>
+                    <th>姓名</th>
+                    <th>工作天数</th>
+                    <th>当月总工时</th>
+                    <th>平均每天工时</th>
                 </tr>
+                </thead>
+                <tbody>
+                <tr th:each="ResultVO:${sheet.content}">
+                    <td th:text="${ResultVO.userNumber}"></td>
+                    <td th:text="${ResultVO.userName}"></td>
+                    <td  th:text="${ResultVO.workDays}"></td>
+                    <td th:text="${ResultVO.sumWorkTime}"></td>
+                    <td th:text="${ResultVO.averageWorkTime}"></td>
+                </tr>
+                </tbody>
             </table>
             <br/>
             <br/>

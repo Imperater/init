@@ -1,5 +1,6 @@
 package com.tqc.resolveexcel.model.excel;
 
+import com.tqc.resolveexcel.model.ResultVO;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -16,7 +17,6 @@ public class ExcelSheet {
 
     /**
      * 单元格内容
-     * 第一层List代表每行、第二层List代表每个单元格
      */
-    private List<List<Object>> content;
+    private List<ResultVO> content;
 }

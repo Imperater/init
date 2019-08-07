@@ -22,7 +22,7 @@ public class ExcelSet {
     /**
      * 工作表列表
      */
-    private List<ExcelSheet> sheets;
+    private ExcelSheet sheets;
 
     /**
      * excel文件信息

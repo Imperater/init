@@ -27,6 +27,10 @@ jar {
     }
 }
 
+configurations.all {
+    resolutionStrategy.force 'com.google.guava:guava:18.0'
+}
+
 dependencies {
     compile('org.springframework.boot:spring-boot-starter-thymeleaf')
     compile('org.springframework.boot:spring-boot-starter-web') {
