@@ -40,4 +40,6 @@ dependencies {
     testAnnotationProcessor 'org.projectlombok:lombok:1.18.2'
     testCompileOnly 'org.projectlombok:lombok:1.18.2'
 
+    compile 'com.google.guava:guava:22.0'
+
 }

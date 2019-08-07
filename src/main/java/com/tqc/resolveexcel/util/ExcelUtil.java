@@ -3,9 +3,11 @@ package com.tqc.resolveexcel.util;
 import com.sun.org.apache.xpath.internal.objects.XObject;
 import com.tqc.resolveexcel.model.excel.ExcelSet;
 import com.tqc.resolveexcel.model.excel.ExcelSheet;
+import jdk.internal.org.objectweb.asm.tree.InnerClassNode;
 import lombok.SneakyThrows;
 import org.apache.poi.hssf.usermodel.HSSFDateUtil;
 import org.apache.poi.ss.usermodel.*;
+import org.codehaus.groovy.runtime.dgmimpl.arrays.IntegerArrayGetAtMetaMethod;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -26,6 +28,22 @@ import java.util.*;
 public class ExcelUtil {
 
     private static final String SHUA_KA_RI_QI = "刷卡日期";
+
+    private static final Integer CELL_INDEX_ONE = 1;
+
+    private static final Integer CELL_INDEX_TWO = 2;
+
+    private static final Integer CELL_INDEX_THREE = 3;
+
+    private static final Integer CELL_INDEX_FOUR = 4;
+
+    private static final Integer CELL_INDEX_FIVE = 5;
+
+    private static final String EMPTY_SPACE = " ";
+
+    private static final Integer INDEX_ZERO = 0;
+
+    private static final Integer INDEX_ONE =1;
 
     private static final String XLS = ".xls";
 
@@ -84,7 +102,7 @@ public class ExcelUtil {
         List<List<Object>> result = new ArrayList<>();
         List<Object> head = new ArrayList<>();
         head.add(0, "姓名");
-        head.add(1, "平均每月每天的打卡时间");
+        head.add(1, "平均每月每天的上班时间");
         result.add(head);
         for (int i = 1; i < dataClean.size(); i++) {
             String currentName = String.valueOf(dataClean.get(i).get(0));
@@ -122,15 +140,16 @@ public class ExcelUtil {
         DateFormat parseDate = new SimpleDateFormat("MM月dd日 HH:mm:ss");
         for (int i = 1; i < sheet.getLastRowNum(); i++) {
             Row row = sheet.getRow(i);
-            List<Object> excelLine = new ArrayList<>();
-            excelLine.add(row.getCell(2));
-            Date date = HSSFDateUtil.getJavaDate(row.getCell(4).getNumericCellValue());
-            String date1 = parseDate.format(date).split(" ")[0];
-            excelLine.add(date1);
-            Date time = HSSFDateUtil.getJavaDate(row.getCell(5).getNumericCellValue());
+            List<Object> convertEachExcelLine = new ArrayList<>();
+            String username = String.valueOf(row.getCell(CELL_INDEX_TWO));
+            convertEachExcelLine.add(username);
+            Date signInDate = HSSFDateUtil.getJavaDate(row.getCell(CELL_INDEX_FOUR).getNumericCellValue());
+            String specificDate = parseDate.format(signInDate).split(" ")[0];
+            convertEachExcelLine.add(specificDate);
+            Date time = HSSFDateUtil.getJavaDate(row.getCell(CELL_INDEX_FIVE).getNumericCellValue());
             String time1 = parseDate.format(time).split(" ")[1];
-            excelLine.add(time1);
-            content.add(excelLine);
+            convertEachExcelLine.add(time1);
+            content.add(convertEachExcelLine);
         }
     }
 

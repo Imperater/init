@@ -19,8 +19,4 @@ public class ExcelSheet {
      * 第一层List代表每行、第二层List代表每个单元格
      */
     private List<List<Object>> content;
-
-    public Integer getRowNumber() {
-        return getContent().size();
-    }
 }

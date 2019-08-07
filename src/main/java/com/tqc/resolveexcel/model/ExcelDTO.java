@@ -39,14 +39,11 @@ public class ExcelDTO {
 
     private List<ExcelDTO> convertResult(List<List<Object>> target) {
         List<ExcelDTO> result = new ArrayList<>();
-        for (int i = 0; i < target.size(); i++) {
-            ExcelDTO excelDTO = new ExcelDTO();
-            List<Object> content = target.get(i);
-            excelDTO.setName(content.get(3).toString());
-            excelDTO.setSuaKaDate(content.get(4).toString());
-            excelDTO.setSuaKaTime(content.get(5).toString());
-            result.add(excelDTO);
-        }
+        target.forEach(o ->result.add(ExcelDTO.builder()
+                .name(o.get(3).toString())
+                .suaKaDate(o.get(4).toString())
+                .suaKaTime(o.get(5).toString())
+                .build()));
 
         return result;
     }
