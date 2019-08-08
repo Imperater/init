@@ -67,7 +67,7 @@ public class ExcelUtil {
 
     private static final String DATE_FORMAT_FOR_TIME = "HH:mm:ss";
 
-
+    private static final String DOUBLE_RESULT_FORMAT = "#.00";
 
     /**
      * 解析Excel表格
@@ -128,32 +128,29 @@ public class ExcelUtil {
             ExcelDTO middleExcelDTO = calculatePerDayWorkTime(groupByDateList);
             result.add(middleExcelDTO);
         }
-        ExcelDTO excelDTO = dealDataForNormalTime(result);
-        DecimalFormat df = new DecimalFormat("#.00");
-
-        currentUser.setWorkDays(excelDTO.getWorkDays());
-        double sumWorkTime = excelDTO.getSumWorkTime();
-        currentUser.setSumWorkTime(Double.valueOf(df.format(sumWorkTime)));
-        Integer days = currentUser.getWorkDays();
-        double averageWorkTime = sumWorkTime / days;
-        currentUser.setAverageWorkTime(Double.valueOf(df.format(averageWorkTime)));
-        return currentUser;
+          return dealDataForNormalTime(result);
     }
 
     private static ExcelDTO dealDataForAverageTime(List<ExcelDTO> normalWorkDays, List<ExcelDTO> overTimeWorkDays) {
-        ExcelDTO excelDTO = new ExcelDTO();
-        double middleResult = 0;
-        for (int i = 0; i < normalWorkDays.size(); i++) {
-            final double middle = normalWorkDays.get(i).getCurrentWorkTime();
-            middleResult += middle;
+        double sumWorkTime = 0;
+        for (ExcelDTO normalWorkDay : normalWorkDays) {
+            final double middle = normalWorkDay.getCurrentWorkTime();
+            sumWorkTime += middle;
         }
-        for (int i = 0; i < overTimeWorkDays.size(); i++) {
-            final double middle = overTimeWorkDays.get(i).getCurrentWorkTime();
-            middleResult += middle;
+        for (ExcelDTO overTimeWorkDay : overTimeWorkDays) {
+            final double middle = overTimeWorkDay.getCurrentWorkTime();
+            sumWorkTime += middle;
         }
-        excelDTO.setSumWorkTime(middleResult);
-        excelDTO.setWorkDays(normalWorkDays.size());
-        return excelDTO;
+        ExcelDTO currentUser = new ExcelDTO();
+        DecimalFormat df = new DecimalFormat(DOUBLE_RESULT_FORMAT);
+        Integer days = normalWorkDays.size();
+        currentUser.setUserName(normalWorkDays.get(0).getUserName());
+        currentUser.setUserNumber(normalWorkDays.get(0).getUserNumber());
+        currentUser.setWorkDays(days);
+        currentUser.setSumWorkTime(Double.valueOf(df.format(sumWorkTime)));
+        double averageWorkTime = sumWorkTime / days;
+        currentUser.setAverageWorkTime(Double.valueOf(df.format(averageWorkTime)));
+        return currentUser;
     }
 
     private static ExcelDTO dealDataForNormalTime(List<ExcelDTO> result) {
