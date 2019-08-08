@@ -1,7 +1,10 @@
 package com.tqc.resolveexcel.controller;
 
+import com.google.common.collect.Lists;
+import com.tqc.resolveexcel.model.ExcelData;
 import com.tqc.resolveexcel.model.excel.ExcelSet;
 import com.tqc.resolveexcel.service.ResolveExcelService;
+import com.tqc.resolveexcel.util.ExportExcelUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +16,9 @@ import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.ModelAndView;
 
 import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 import java.io.File;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -42,7 +47,7 @@ public class ResolveExcelController extends BaseController {
     }
 
     @RequestMapping(value = "/uploadExcel")
-    public ModelAndView uploadExcel(HttpServletRequest request, @RequestParam("file") MultipartFile file) {
+    public ModelAndView uploadExcel(HttpServletRequest request, @RequestParam("file") MultipartFile file, HttpServletResponse response) {
 
         String filename = file.getOriginalFilename();
         if (!isExcelFilename(filename)) {
@@ -61,7 +66,19 @@ public class ResolveExcelController extends BaseController {
             //解析，返回结果
             ExcelSet excelSet = resolveExcelService.resolveExcel(uploadFile.getAbsolutePath());
 
+            ExcelData excelData = new ExcelData();
 
+            excelData.setName("Result");
+            List<String> titles = Lists.newArrayListWithExpectedSize(10);
+            titles.add("工号");
+            titles.add("姓名");
+            titles.add("工作天数");
+            titles.add("总工时");
+            titles.add("平均每天工时");
+            excelData.setTitles(titles);
+            excelData.setRows(excelSet.getSheets().getContent());
+
+            ExportExcelUtils.exportExcel(response,"hello.xlsx",excelData);
             return success("upload", excelSet);
         } catch (Exception e) {
             e.printStackTrace();
