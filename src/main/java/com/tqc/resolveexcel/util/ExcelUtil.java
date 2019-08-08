@@ -86,8 +86,8 @@ public class ExcelUtil {
                 Map<String, List<ExcelDTO>> groupByUserNumber = specificValues.stream().collect(Collectors.groupingBy(ExcelDTO::getUserNumber));
                 List<ExcelDTO> finalResult = dealGroupByUserNumber(groupByUserNumber);
                 List<ResultVO> content = ResultVO.convertDtoToVO(finalResult);
-                List<ResultVO> sourtData = content.stream().sorted(Comparator.comparing(ResultVO::getAverageWorkTime)).collect(Collectors.toList());
-                sheets.setContent((sourtData));
+                List<ResultVO> sortData = content.stream().sorted(Comparator.comparing(ResultVO::getAverageWorkTime)).collect(Collectors.toList());
+                sheets.setContent((sortData));
             }
             return ExcelSet.builder().sheets(sheets).excelFile(file).build();
         }
@@ -274,15 +274,33 @@ public class ExcelUtil {
     }
 
     private static ExcelDTO dealCorrectSignInDate(List<ExcelDTO> duplicateSignInList) {
-        DateFormat df = new SimpleDateFormat("HH:mm:ss");
         ExcelDTO middleResult = new ExcelDTO();
         try {
+            DateFormat df = new SimpleDateFormat("HH:mm:ss");
+            Date dealLine = df.parse("12:00:00");
+
             String username = duplicateSignInList.get(0).getUserName();
             String date = duplicateSignInList.get(0).getSignInDate();
             String startWorkTime = duplicateSignInList.get(0).getSignInTime();
+            String startWorkTimeSeconds = startWorkTime.split(":")[2];
+            String sameTimeForStartWorkTime = startWorkTime.split(":")[0] + startWorkTime.split(":")[1];
             String endWorkTime = duplicateSignInList.get(1).getSignInTime();
+            String endWorkTimeSeconds = endWorkTime.split(":")[2];
+            String sameTimeForEndWorkTime = endWorkTime.split(":")[0] + endWorkTime.split(":")[1];
+            Integer secondsValue = Math.abs(Integer.parseInt(startWorkTimeSeconds) - Integer.parseInt(endWorkTimeSeconds));
+
             Date convertStartWorkTime = df.parse(startWorkTime);
             Date convertEndWorkTime = df.parse(endWorkTime);
+            if (sameTimeForEndWorkTime.equals(sameTimeForStartWorkTime) && secondsValue < 60) {
+                if (convertStartWorkTime.after(dealLine)) {
+                    startWorkTime = "10:00:00";
+                    convertStartWorkTime = df.parse(startWorkTime);
+                } else {
+                    endWorkTime = "19:00:00";
+                    convertEndWorkTime = df.parse(endWorkTime);
+                }
+            }
+
             long diff = convertStartWorkTime.getTime() - convertEndWorkTime.getTime();
             long days = diff / (1000 * 60 * 60 * 24);
             long hours = Math.abs((diff - days * (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
