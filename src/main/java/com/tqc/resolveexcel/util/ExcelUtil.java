@@ -201,17 +201,6 @@ public class ExcelUtil {
         }
     }
 
-    private static void contentAddHeadTitle(Sheet sheet, List<ExcelDTO> content) {
-        Row head = sheet.getRow(INDEX_ZERO);
-        String userName = String.valueOf(head.getCell(CELL_INDEX_TWO));
-        String userNumber = String.valueOf(String.valueOf(head.getCell(CELL_INDEX_ONE)));
-        String signInDate = String.valueOf(head.getCell(CELL_INDEX_FOUR));
-        String signInTime = String.valueOf(head.getCell(CELL_INDEX_FIVE));
-        ExcelDTO headLine = ExcelDTO.builder().userName(userName).userNumber(userNumber)
-                .signInDate(signInDate).signInDate(signInTime).build();
-        content.add(headLine);
-    }
-
     private static ExcelDTO calculatePerDayWorkTime(List<ExcelDTO> groupByDateList) {
         if (groupByDateList.size() == 1) {
             return dealSingleSignInDate(groupByDateList);

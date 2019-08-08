@@ -92,7 +92,6 @@ public class ExportExcelUtils {
         int colIndex = 0;
 
         Font dataFont = wb.createFont();
-        dataFont.setFontName("simsun");
         // dataFont.setFontHeightInPoints((short) 14);
         dataFont.setColor(IndexedColors.BLACK.index);
 
